@@ -21,9 +21,21 @@ func TestMapImmutable(t *testing.T) {
         t.Errorf("kids size is not 1 : %d", size)
     }
 
+    // both maps have the right keys
+    if keys := world.Keys(); len(keys) != 1 || keys[0] != "hello" {
+        t.Errorf("world has the wrong keys: %#v", keys)
+    }
+    if keys := kids.Keys(); len(keys) != 1 || keys[0] != "hello" {
+        t.Errorf("kids has the wrong keys: %#v", keys)
+    }
+
+    // test deletion
     empty := kids.Delete("hello")
     if size := empty.Size(); size != 0 {
         t.Errorf("empty size is not 1 : %d", size)
+    }
+    if keys := empty.Keys(); len(keys) != 0 {
+        t.Errorf("empty has the wrong keys: %#v", keys)
     }
 }
 

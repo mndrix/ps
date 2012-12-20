@@ -42,6 +42,17 @@ func (m Map) Size() int {
     return len(m)
 }
 
+// Keys returns a slice containing all keys in this map
+func (m Map) Keys() []string {
+    keys := make([]string, len(m))
+    i := 0
+    for key := range m {
+        keys[i] = key
+        i++
+    }
+    return keys
+}
+
 // Clone deep copies `src` into `dst`
 func (prev Map) Clone() Map {
     next := NewMap()
