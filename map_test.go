@@ -41,7 +41,11 @@ func TestMapImmutable(t *testing.T) {
 }
 
 func TestMapMultipleKeys(t *testing.T) {
-    m := NewMap().Set("one", 1).Set("two", 2).Set("three", 3)
+    // map with multiple keys each with pointer values
+    one := 1
+    two := 2
+    three := 3
+    m := NewMap().Set("one", &one).Set("two", &two).Set("three", &three)
 
     // do we have the right number of keys?
     keys := m.Keys()
@@ -60,6 +64,33 @@ func TestMapMultipleKeys(t *testing.T) {
     }
     if keys[2] != "two" {
         t.Errorf("unexpected key: %s", keys[2])
+    }
+
+
+    // do we have the right values?
+    vp, ok := m.Lookup("one");
+    if !ok {
+        t.Logf("missing value for one")
+        t.FailNow()
+    }
+    if v := vp.(*int); *v != 1 {
+        t.Errorf("wrong value: %d\n", *v)
+    }
+    vp, ok = m.Lookup("two");
+    if !ok {
+        t.Logf("missing value for two")
+        t.FailNow()
+    }
+    if v := vp.(*int); *v != 2 {
+        t.Errorf("wrong value: %d\n", *v)
+    }
+    vp, ok = m.Lookup("three");
+    if !ok {
+        t.Logf("missing value for three")
+        t.FailNow()
+    }
+    if v := vp.(*int); *v != 3 {
+        t.Errorf("wrong value: %d\n", *v)
     }
 }
 
