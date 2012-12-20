@@ -1,5 +1,7 @@
 package ps
 
+import . "strconv"
+
 import "testing"
 import "sort"
 
@@ -91,6 +93,31 @@ func TestMapMultipleKeys(t *testing.T) {
     }
     if v := vp.(*int); *v != 3 {
         t.Errorf("wrong value: %d\n", *v)
+    }
+}
+
+func TestMapManyKeys (t *testing.T) {
+    // build a map with many keys and values
+    count := 100
+    m := NewMap()
+    for i := 0; i<count; i++ {
+        m = m.Set(Itoa(i), i)
+    }
+
+    if m.Size() != 100 {
+        t.Errorf("Wrong number of keys", m.Size())
+    }
+
+    m = m.Delete("42").Delete("7").Delete("19").Delete("99")
+    if m.Size() != 96 {
+        t.Errorf("Wrong number of keys", m.Size())
+    }
+
+    for i:=43; i<99; i++ {
+        v, ok := m.Lookup(Itoa(i))
+        if !ok || v != i {
+            t.Errorf("Wrong value for key %d", i)
+        }
     }
 }
 
