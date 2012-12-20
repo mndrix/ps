@@ -1,6 +1,7 @@
 package ps
 
 import "testing"
+import "sort"
 
 func TestMapImmutable(t *testing.T) {
     // build a couple small maps
@@ -36,6 +37,29 @@ func TestMapImmutable(t *testing.T) {
     }
     if keys := empty.Keys(); len(keys) != 0 {
         t.Errorf("empty has the wrong keys: %#v", keys)
+    }
+}
+
+func TestMapMultipleKeys(t *testing.T) {
+    m := NewMap().Set("one", 1).Set("two", 2).Set("three", 3)
+
+    // do we have the right number of keys?
+    keys := m.Keys()
+    if len(keys) != 3 {
+        t.Logf("wrong size keys: %d", len(keys))
+        t.FailNow()
+    }
+
+    // do we have the right keys?
+    sort.Strings(keys)
+    if keys[0] != "one" {
+        t.Errorf("unexpected key: %s", keys[0])
+    }
+    if keys[1] != "three" {
+        t.Errorf("unexpected key: %s", keys[1])
+    }
+    if keys[2] != "two" {
+        t.Errorf("unexpected key: %s", keys[2])
     }
 }
 
