@@ -7,15 +7,17 @@ type List struct {
     tail    *List
 }
 
+// An empty list shared by all lists
+var nilList = &List{}
+
 // NewList returns a new, empty list
 func NewList() *List {
-    var list List
-    return &list
+    return nilList
 }
 
 // IsNil returns true if the list is empty
 func (self *List) IsNil() bool {
-    return self.depth == 0
+    return self == nilList;
 }
 
 // Size returns the list's length

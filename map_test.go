@@ -5,6 +5,14 @@ import . "strconv"
 import "testing"
 import "sort"
 
+func TestMapNil(t *testing.T) {
+    m := NewMap()
+    keys := m.Keys()
+    if len(keys) != 0 {
+        t.Errorf("Empty map has keys")
+    }
+}
+
 func TestMapImmutable(t *testing.T) {
     // build a couple small maps
     world := NewMap().Set("hello", "world")

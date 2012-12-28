@@ -15,17 +15,25 @@ type Map struct {
     left    *Map
     right   *Map
 }
+var nilMap = &Map{}
+
+// Recursively set nilMap's subtrees to point at itself.
+// This eliminates all nil pointers in the map structure.
+// All map nodes are created by cloning this structure so
+// they avoid the problem too.
+func init () {
+    nilMap.left = nilMap
+    nilMap.right = nilMap
+}
 
 // NewMap allocates a new, persistent map from strings to any value
 func NewMap() *Map {
-    var m Map
-    m.count = 0  // 0 count indicates an empty tree
-    return &m
+    return nilMap
 }
 
 // IsNil returns true if the Map is empty
 func (self *Map) IsNil() bool {
-    return self.count == 0
+    return self == nilMap
 }
 
 // clone returns an exact duplicate of a tree node
@@ -56,13 +64,13 @@ func (self *Map) Set(key string, value Any) *Map {
 }
 
 func setLowLevel(self *Map, hash uint64, key string, value Any) *Map {
-    if self == nil || self.IsNil() { // an empty tree is easy
-        var m Map
+    if self.IsNil() { // an empty tree is easy
+        m := self.clone()
         m.count = 1
         m.hash  = hash
         m.key   = key
         m.value = value
-        return &m
+        return m
     }
 
     if hash < self.hash { // insert into left subtree
@@ -88,10 +96,10 @@ func setLowLevel(self *Map, hash uint64, key string, value Any) *Map {
 // of its subtrees
 func recalculateCount(m *Map) {
     count := 0
-    if m.left != nil {
+    if !m.left.IsNil() {
         count += m.left.Size()
     }
-    if m.right != nil {
+    if !m.right.IsNil() {
         count += m.right.Size()
     }
     m.count = count + 1 // add one to count ourself
@@ -106,9 +114,6 @@ func (m *Map) Delete(key string) *Map {
 
 func deleteLowLevel(self *Map, hash uint64) (*Map, bool) {
     // empty trees are easy
-    if self == nil {
-        return NewMap(), false
-    }
     if self.IsNil() {
         return self, false
     }
@@ -177,7 +182,7 @@ func (m *Map) deleteRightmost() (*Map, *Map) {
     }
 
     deleted := m.clone()
-    deleted.left = nil
+    deleted.left = NewMap()
     return deleted, m.left
 }
 func (m *Map) deleteLeftmost() (*Map, *Map) {
@@ -194,16 +199,16 @@ func (m *Map) deleteLeftmost() (*Map, *Map) {
 
     deleted := m.clone()
     deleted.count = 1
-    deleted.right = nil
+    deleted.right = NewMap()
     return deleted, m.right
 }
 
 // hasLeft and hasRight return true if this tree has a left or right subtree
 func (m *Map) hasLeft() bool {
-    return m.left != nil && !m.left.IsNil()
+    return !m.left.IsNil()
 }
 func (m *Map) hasRight() bool {
-    return m.right != nil && !m.right.IsNil()
+    return !m.right.IsNil()
 }
 
 // isLeaf returns true if this is a leaf node
@@ -231,7 +236,7 @@ func (m *Map) Lookup(key string) (Any, bool) {
 }
 
 func lookupLowLevel(self *Map, hash uint64) (Any, bool) {
-    if self == nil || self.IsNil() { // an empty tree is easy
+    if self.IsNil() { // an empty tree is easy
         return nil, false
     }
 
@@ -258,7 +263,7 @@ func (m *Map) ForEach(f func(key string, val Any)) {
     }
 
     // left branch
-    if m.left != nil {
+    if !m.left.IsNil() {
         m.left.ForEach(f)
     }
 
@@ -266,7 +271,7 @@ func (m *Map) ForEach(f func(key string, val Any)) {
     f(m.key, m.value)
 
     // right branch
-    if m.right != nil {
+    if !m.right.IsNil() {
         m.right.ForEach(f)
     }
 }
