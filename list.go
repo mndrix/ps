@@ -1,6 +1,6 @@
-// Immutable (i.e. persistent) list
 package ps
 
+// Immutable (i.e. persistent) list
 type List struct {
     depth   int     // the number of nodes after, and including, this one
     value   Any

@@ -1,4 +1,4 @@
-// Immutable (i.e. persistent) data structures
+// Immutable data structures
 package ps
 
 import . "fmt"
@@ -7,6 +7,7 @@ import "hash/fnv"
 
 type Any interface{}
 
+// Immutable (i.e. persistent) associative array
 type Map struct {
     count   int
     hash    uint64  // hash of the key (used for tree balancing)
