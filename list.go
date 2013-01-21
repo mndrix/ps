@@ -1,41 +1,60 @@
 package ps
 
+type List interface {
+    // IsNil returns true if the list is empty
+    IsNil() bool
+
+    // Cons returns a new list with val added onto the head
+    Cons(val Any) List
+
+    // Head returns the first element in the list or panics if the list is empty
+    Head() Any
+
+    // Tail returns the tail of this list or panics if the list is empty
+    Tail() List
+
+    // Size returns the list's length
+    Size() int
+
+    // ForEach executes a callback for each value in the list
+    ForEach(f func(Any))
+
+    // Reverse returns a list with elements in opposite order as this list
+    Reverse() List
+}
+
 // Immutable (i.e. persistent) list
-type List struct {
+type list struct {
     depth   int     // the number of nodes after, and including, this one
     value   Any
-    tail    *List
+    tail    *list
 }
 
 // An empty list shared by all lists
-var nilList = &List{}
+var nilList = &list{}
 
 // NewList returns a new, empty list
-func NewList() *List {
+func NewList() List {
     return nilList
 }
 
-// IsNil returns true if the list is empty
-func (self *List) IsNil() bool {
+func (self *list) IsNil() bool {
     return self == nilList;
 }
 
-// Size returns the list's length
-func (self *List) Size() int {
+func (self *list) Size() int {
     return self.depth
 }
 
-// Cons returns a new list with val added onto the head
-func (tail *List) Cons(val Any) *List {
-    var list List
-    list.depth = tail.depth + 1
-    list.value = val
-    list.tail = tail
-    return &list
+func (tail *list) Cons(val Any) List {
+    var xs list
+    xs.depth = tail.depth + 1
+    xs.value = val
+    xs.tail = tail
+    return &xs
 }
 
-// Head returns the first element in the list or panics if the list is empty
-func (self *List) Head() Any {
+func (self *list) Head() Any {
     if self.IsNil() {
         panic("Called Head() on an empty list")
     }
@@ -43,8 +62,7 @@ func (self *List) Head() Any {
     return self.value
 }
 
-// Tail returns the tail of this list or panics if the list is empty
-func (self *List) Tail() *List {
+func (self *list) Tail() List {
     if self.IsNil() {
         panic("Called Tail() on an empty list")
     }
@@ -53,7 +71,7 @@ func (self *List) Tail() *List {
 }
 
 // ForEach executes a callback for each value in the list
-func (self *List) ForEach(f func(Any)) {
+func (self *list) ForEach(f func(Any)) {
     if self.IsNil() {
         return
     }
@@ -62,7 +80,7 @@ func (self *List) ForEach(f func(Any)) {
 }
 
 // Reverse returns a list with elements in opposite order as this list
-func (self *List) Reverse() *List {
+func (self *list) Reverse() List {
     reversed := NewList()
     self.ForEach( func (v Any) { reversed = reversed.Cons(v) })
     return reversed
