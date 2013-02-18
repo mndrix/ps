@@ -1,22 +1,66 @@
-// Immutable data structures
+// Fully persistent data structures. A persistent data structure is a data
+// structure that always preserves the previous version of itself when
+// it is modified. Such data structures are effectively immutable,
+// as their operations do not update the structure in-place, but instead
+// always yield a new structure.
+//
+// Persistent
+// data structures typically share structure among themselves.  This allows
+// operations to avoid copying the entire data structure.
 package ps
 
 import . "fmt"
 
+import "bytes"
 import "hash/fnv"
 
+// Any is a shorthand for Go's verbose interface{} type.
 type Any interface{}
 
+// A Map associates unique keys (type string) with values (type Any).
+type Map interface {
+    // IsNil returns true if the Map is empty
+    IsNil() bool
+
+    // Set returns a new map in which key and value are associated.
+    // If the key didn't exist before, it's created; otherwise, the
+    // associated value is changed.
+    // This operation is O(log N) in the number of keys.
+    Set(key string, value Any) Map
+
+    // Delete returns a new map with the association for key, if any, removed.
+    // This operation is O(log N) in the number of keys.
+    Delete(key string) Map
+
+    // Lookup returns the value associated with a key, if any.  If the key
+    // exists, the second return value is true; otherwise, false.
+    // This operation is O(log N) in the number of keys.
+    Lookup(key string) (Any, bool)
+
+    // Size returns the number of key value pairs in the map.
+    // This takes O(1) time.
+    Size() int
+
+    // ForEach executes a callback on each key value pair in the map.
+    ForEach(f func(key string, val Any))
+
+    // Keys returns a slice with all keys in this map.
+    // This operation is O(N) in the number of keys.
+    Keys() []string
+
+    String() string
+}
+
 // Immutable (i.e. persistent) associative array
-type Map struct {
+type tree struct {
     count   int
     hash    uint64  // hash of the key (used for tree balancing)
     key     string
     value   Any
-    left    *Map
-    right   *Map
+    left    *tree
+    right   *tree
 }
-var nilMap = &Map{}
+var nilMap = &tree{}
 
 // Recursively set nilMap's subtrees to point at itself.
 // This eliminates all nil pointers in the map structure.
@@ -27,19 +71,20 @@ func init () {
     nilMap.right = nilMap
 }
 
-// NewMap allocates a new, persistent map from strings to any value
-func NewMap() *Map {
+// NewMap allocates a new, persistent map from strings to values of
+// any type.
+// This is currently implemented as a path-copying binary tree.
+func NewMap() Map {
     return nilMap
 }
 
-// IsNil returns true if the Map is empty
-func (self *Map) IsNil() bool {
+func (self *tree) IsNil() bool {
     return self == nilMap
 }
 
 // clone returns an exact duplicate of a tree node
-func (self *Map) clone() *Map {
-    var m Map
+func (self *tree) clone() *tree {
+    var m tree
     m.count = self.count
     m.hash  = self.hash
     m.key   = self.key
@@ -59,12 +104,12 @@ func hashKey(key string) uint64 {
 // Set returns a new map similar to this one but with key and value
 // associated.  If the key didn't exist, it's created; otherwise, the
 // associated value is changed.
-func (self *Map) Set(key string, value Any) *Map {
+func (self *tree) Set(key string, value Any) Map {
     hash := hashKey(key)
     return setLowLevel(self, hash, key, value)
 }
 
-func setLowLevel(self *Map, hash uint64, key string, value Any) *Map {
+func setLowLevel(self *tree, hash uint64, key string, value Any) *tree {
     if self.IsNil() { // an empty tree is easy
         m := self.clone()
         m.count = 1
@@ -95,7 +140,7 @@ func setLowLevel(self *Map, hash uint64, key string, value Any) *Map {
 
 // modifies a map by recalculating its key count based on the counts
 // of its subtrees
-func recalculateCount(m *Map) {
+func recalculateCount(m *tree) {
     count := 0
     if !m.left.IsNil() {
         count += m.left.Size()
@@ -106,14 +151,13 @@ func recalculateCount(m *Map) {
     m.count = count + 1 // add one to count ourself
 }
 
-// Delete returns a new map with the association for key, if any, removed
-func (m *Map) Delete(key string) *Map {
+func (m *tree) Delete(key string) Map {
     hash := hashKey(key)
     newMap, _ := deleteLowLevel(m, hash)
     return newMap
 }
 
-func deleteLowLevel(self *Map, hash uint64) (*Map, bool) {
+func deleteLowLevel(self *tree, hash uint64) (*tree, bool) {
     // empty trees are easy
     if self.IsNil() {
         return self, false
@@ -140,7 +184,7 @@ func deleteLowLevel(self *Map, hash uint64) (*Map, bool) {
 
     // we must delete our own node
     if self.isLeaf() {  // we have no children
-        return NewMap(), true
+        return nilMap, true
     }
     if self.subtreeCount() == 1 { // only one subtree
         if self.hasLeft() {  // it's the left one
@@ -170,9 +214,9 @@ func deleteLowLevel(self *Map, hash uint64) (*Map, bool) {
 
 // delete the left or rightmost node in a tree returning the node that
 // was deleted and the tree left over after its deletion
-func (m *Map) deleteRightmost() (*Map, *Map) {
+func (m *tree) deleteRightmost() (*tree, *tree) {
     if m.isLeaf() {
-        return m, NewMap()
+        return m, nilMap
     }
     if m.hasRight() {
         deleted, newRight := m.right.deleteRightmost()
@@ -183,12 +227,12 @@ func (m *Map) deleteRightmost() (*Map, *Map) {
     }
 
     deleted := m.clone()
-    deleted.left = NewMap()
+    deleted.left = nilMap
     return deleted, m.left
 }
-func (m *Map) deleteLeftmost() (*Map, *Map) {
+func (m *tree) deleteLeftmost() (*tree, *tree) {
     if m.isLeaf() {
-        return m, NewMap()
+        return m, nilMap
     }
     if m.hasLeft() {
         deleted, newLeft := m.left.deleteLeftmost()
@@ -200,25 +244,25 @@ func (m *Map) deleteLeftmost() (*Map, *Map) {
 
     deleted := m.clone()
     deleted.count = 1
-    deleted.right = NewMap()
+    deleted.right = nilMap
     return deleted, m.right
 }
 
 // hasLeft and hasRight return true if this tree has a left or right subtree
-func (m *Map) hasLeft() bool {
+func (m *tree) hasLeft() bool {
     return !m.left.IsNil()
 }
-func (m *Map) hasRight() bool {
+func (m *tree) hasRight() bool {
     return !m.right.IsNil()
 }
 
 // isLeaf returns true if this is a leaf node
-func (m *Map) isLeaf() bool {
+func (m *tree) isLeaf() bool {
     return m.Size() == 1
 }
 
 // returns the number of child subtrees we have
-func (m *Map) subtreeCount() int {
+func (m *tree) subtreeCount() int {
     count := 0
     if m.hasLeft() {
         count++
@@ -229,14 +273,12 @@ func (m *Map) subtreeCount() int {
     return count
 }
 
-// Lookup returns a pair of values.  The first is the value, the second is
-// true if the value exists.
-func (m *Map) Lookup(key string) (Any, bool) {
+func (m *tree) Lookup(key string) (Any, bool) {
     hash := hashKey(key)
     return lookupLowLevel(m, hash)
 }
 
-func lookupLowLevel(self *Map, hash uint64) (Any, bool) {
+func lookupLowLevel(self *tree, hash uint64) (Any, bool) {
     if self.IsNil() { // an empty tree is easy
         return nil, false
     }
@@ -252,13 +294,11 @@ func lookupLowLevel(self *Map, hash uint64) (Any, bool) {
     return self.value, true
 }
 
-// Size returns the number of key value pairs in the map
-func (m *Map) Size() int {
+func (m *tree) Size() int {
     return m.count
 }
 
-// ForEach executes a callback on each key value pair in the map
-func (m *Map) ForEach(f func(key string, val Any)) {
+func (m *tree) ForEach(f func(key string, val Any)) {
     if m.IsNil() {
         return
     }
@@ -277,8 +317,7 @@ func (m *Map) ForEach(f func(key string, val Any)) {
     }
 }
 
-// Keys returns a slice containing all keys in this map
-func (m *Map) Keys() []string {
+func (m *tree) Keys() []string {
     keys := make([]string, m.Size())
     i := 0
     m.ForEach( func (k string, v Any) {
@@ -286,4 +325,16 @@ func (m *Map) Keys() []string {
         i++
     })
     return keys
+}
+
+// make it easier to display maps for debugging
+func (m *tree) String() string {
+    keys := m.Keys()
+    buf := bytes.NewBufferString("{")
+    for _, key := range keys {
+        val, _ := m.Lookup(key)
+        Fprintf(buf, "%s: %s, ", key, val)
+    }
+    Fprintf(buf, "}\n")
+    return buf.String()
 }
