@@ -1,25 +1,29 @@
 package ps
 
+// List is a persistent list of possibly heterogenous values.
 type List interface {
     // IsNil returns true if the list is empty
     IsNil() bool
 
-    // Cons returns a new list with val added onto the head
+    // Cons returns a new list with val as the head
     Cons(val Any) List
 
-    // Head returns the first element in the list or panics if the list is empty
+    // Head returns the first element of the list;
+    // panics if the list is empty
     Head() Any
 
-    // Tail returns the tail of this list or panics if the list is empty
+    // Tail returns a list with all elements except the head;
+    // panics if the list is empty
     Tail() List
 
-    // Size returns the list's length
+    // Size returns the list's length.  This takes O(1) time.
     Size() int
 
-    // ForEach executes a callback for each value in the list
+    // ForEach executes a callback for each value in the list.
     ForEach(f func(Any))
 
-    // Reverse returns a list with elements in opposite order as this list
+    // Reverse returns a list whose elements are in the opposite order as
+    // the original list.
     Reverse() List
 }
 
@@ -33,7 +37,9 @@ type list struct {
 // An empty list shared by all lists
 var nilList = &list{}
 
-// NewList returns a new, empty list
+// NewList returns a new, empty list.  The result is a singly linked
+// list implementation.  All lists share an empty tail, so allocating
+// empty lists is efficient in time and memory.
 func NewList() List {
     return nilList
 }
