@@ -84,12 +84,7 @@ func (self *tree) IsNil() bool {
 // clone returns an exact duplicate of a tree node
 func (self *tree) clone() *tree {
     var m tree
-    m.count = self.count
-    m.hash  = self.hash
-    m.key   = self.key
-    m.value = self.value
-    m.left  = self.left
-    m.right = self.right
+    m = *self
     return &m
 }
 
