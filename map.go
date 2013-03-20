@@ -97,7 +97,8 @@ func (self *tree) clone() *tree {
 // hashKey returns a hash code for a given string
 func hashKey(key string) uint64 {
     hasher := fnv.New64()
-    Fprint(hasher, key)
+    bytes := []byte(key)
+    _, _ = hasher.Write(bytes)
     return hasher.Sum64()
 }
 
