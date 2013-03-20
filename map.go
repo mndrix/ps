@@ -12,7 +12,6 @@ package ps
 import . "fmt"
 
 import "bytes"
-import "hash/fnv"
 
 // Any is a shorthand for Go's verbose interface{} type.
 type Any interface{}
@@ -94,12 +93,20 @@ func (self *tree) clone() *tree {
     return &m
 }
 
+// constants for FNV-1a hash algorithm
+const (
+    offset64 uint64 = 14695981039346656037
+    prime64  uint64 = 1099511628211
+)
 // hashKey returns a hash code for a given string
 func hashKey(key string) uint64 {
-    hasher := fnv.New64a()
     bytes := []byte(key)
-    _, _ = hasher.Write(bytes)
-    return hasher.Sum64()
+    hash := offset64
+    for _, byte := range bytes {
+        hash ^= uint64(byte)
+        hash *= prime64
+    }
+    return hash
 }
 
 // Set returns a new map similar to this one but with key and value
