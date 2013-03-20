@@ -142,3 +142,10 @@ func BenchmarkMapDelete(b *testing.B) {
         m.Delete("key")
     }
 }
+
+func BenchmarkHashKey(b *testing.B) {
+    key := "this is a key"
+    for i := 0; i < b.N; i++ {
+        _ = hashKey(key)
+    }
+}
