@@ -129,6 +129,13 @@ func TestMapManyKeys (t *testing.T) {
     }
 }
 
+func TestMapHashKey (t *testing.T) {
+    hash := hashKey("this is a key")
+    if hash != 10424450902216330915 {
+        t.Errorf("This isn't FNV-1a hashing: %d", hash)
+    }
+}
+
 func BenchmarkMapSet(b *testing.B) {
     m := NewMap()
     for i := 0; i < b.N; i++ {
