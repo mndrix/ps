@@ -51,13 +51,14 @@ type Map interface {
 }
 
 // Immutable (i.e. persistent) associative array
+const childCount = 2
+const shiftSize  = 1
 type tree struct {
     count   int
     hash    uint64  // hash of the key (used for tree balancing)
     key     string
     value   Any
-    left    *tree
-    right   *tree
+    children  [childCount]*tree
 }
 var nilMap = &tree{}
 
@@ -66,8 +67,9 @@ var nilMap = &tree{}
 // All map nodes are created by cloning this structure so
 // they avoid the problem too.
 func init () {
-    nilMap.left = nilMap
-    nilMap.right = nilMap
+    for i := range nilMap.children {
+        nilMap.children[i] = nilMap
+    }
 }
 
 // NewMap allocates a new, persistent map from strings to values of
@@ -109,10 +111,10 @@ func hashKey(key string) uint64 {
 // associated value is changed.
 func (self *tree) Set(key string, value Any) Map {
     hash := hashKey(key)
-    return setLowLevel(self, hash, key, value)
+    return setLowLevel(self, hash, hash, key, value)
 }
 
-func setLowLevel(self *tree, hash uint64, key string, value Any) *tree {
+func setLowLevel(self *tree, partialHash, hash uint64, key string, value Any) *tree {
     if self.IsNil() { // an empty tree is easy
         m := self.clone()
         m.count = 1
@@ -122,15 +124,10 @@ func setLowLevel(self *tree, hash uint64, key string, value Any) *tree {
         return m
     }
 
-    if hash < self.hash { // insert into left subtree
+    if hash != self.hash {
         m := self.clone()
-        m.left = setLowLevel(self.left, hash, key, value)
-        recalculateCount(m)
-        return m
-    }
-    if hash > self.hash { // insert into right subtree
-        m := self.clone()
-        m.right = setLowLevel(self.right, hash, key, value)
+        i := partialHash % childCount
+        m.children[i] = setLowLevel(self.children[i], partialHash>>shiftSize, hash, key, value)
         recalculateCount(m)
         return m
     }
@@ -145,118 +142,92 @@ func setLowLevel(self *tree, hash uint64, key string, value Any) *tree {
 // of its subtrees
 func recalculateCount(m *tree) {
     count := 0
-    if !m.left.IsNil() {
-        count += m.left.Size()
-    }
-    if !m.right.IsNil() {
-        count += m.right.Size()
+    for _, t := range m.children {
+        count += t.Size()
     }
     m.count = count + 1 // add one to count ourself
 }
 
 func (m *tree) Delete(key string) Map {
     hash := hashKey(key)
-    newMap, _ := deleteLowLevel(m, hash)
+    newMap, _ := deleteLowLevel(m, hash, hash)
     return newMap
 }
 
-func deleteLowLevel(self *tree, hash uint64) (*tree, bool) {
+func deleteLowLevel(self *tree, partialHash, hash uint64) (*tree, bool) {
     // empty trees are easy
     if self.IsNil() {
         return self, false
     }
 
-    if hash < self.hash { // look in the left subtree
-        newLeft, found := deleteLowLevel(self.left, hash)
+    if hash != self.hash {
+        i := partialHash % childCount
+        child, found := deleteLowLevel(self.children[i], partialHash>>shiftSize, hash)
         if !found {
             return self, false
         }
         newMap := self.clone()
-        newMap.left = newLeft
+        newMap.children[i] = child
         recalculateCount(newMap)
-    }
-    if hash > self.hash { // look in the right subtree
-        newRight, found := deleteLowLevel(self.right, hash)
-        if !found {
-            return self, false
-        }
-        newMap := self.clone()
-        newMap.right = newRight
-        recalculateCount(newMap)
+        return newMap, true   // ? this wasn't in the original code
     }
 
     // we must delete our own node
     if self.isLeaf() {  // we have no children
         return nilMap, true
     }
+    /*
     if self.subtreeCount() == 1 { // only one subtree
-        if self.hasLeft() {  // it's the left one
-            return self.left, true
+        for _, t := range self.children {
+            if t != nilMap {
+                return t, true
+            }
         }
-        return self.right, true  // it's the right one
+        panic("Tree with 1 subtree actually had no subtrees")
     }
+    */
 
     // find a node to replace us
-    if self.left.Size() > self.right.Size() {  // make left side smaller
-        replacement, newLeft := self.left.deleteRightmost()
-        newMap := replacement.clone()
-        newMap.left = newLeft
-        newMap.right = self.right
-        recalculateCount(newMap)
-        return newMap, true
+    i := -1
+    size := -1
+    for j, t := range self.children {
+        if t.Size() > size {
+            i = j
+            size = t.Size()
+        }
     }
 
-    // make right side smaller
-    replacement, newRight := self.right.deleteLeftmost()
+    // make chosen leaf smaller
+    replacement, child := self.children[i].deleteLeftmost()
     newMap := replacement.clone()
-    newMap.right = newRight
-    newMap.left = self.left
+    for j := range self.children {
+        if j == i {
+            newMap.children[j] = child
+        } else {
+            newMap.children[j] = self.children[j]
+        }
+    }
     recalculateCount(newMap)
     return newMap, true
 }
 
-// delete the left or rightmost node in a tree returning the node that
+// delete the leftmost node in a tree returning the node that
 // was deleted and the tree left over after its deletion
-func (m *tree) deleteRightmost() (*tree, *tree) {
-    if m.isLeaf() {
-        return m, nilMap
-    }
-    if m.hasRight() {
-        deleted, newRight := m.right.deleteRightmost()
-        newMap := m.clone()
-        newMap.right = newRight
-        recalculateCount(newMap)
-        return deleted, newMap
-    }
-
-    deleted := m.clone()
-    deleted.left = nilMap
-    return deleted, m.left
-}
 func (m *tree) deleteLeftmost() (*tree, *tree) {
     if m.isLeaf() {
         return m, nilMap
     }
-    if m.hasLeft() {
-        deleted, newLeft := m.left.deleteLeftmost()
-        newMap := m.clone()
-        newMap.left = newLeft
-        recalculateCount(newMap)
-        return deleted, newMap
+
+    for i, t := range m.children {
+        if t != nilMap {
+            deleted, child := t.deleteLeftmost()
+            newMap := m.clone()
+            newMap.children[i] = child
+            recalculateCount(newMap)
+            return deleted, newMap
+        }
     }
-
-    deleted := m.clone()
-    deleted.count = 1
-    deleted.right = nilMap
-    return deleted, m.right
-}
-
-// hasLeft and hasRight return true if this tree has a left or right subtree
-func (m *tree) hasLeft() bool {
-    return !m.left.IsNil()
-}
-func (m *tree) hasRight() bool {
-    return !m.right.IsNil()
+    panic("Tree isn't a leaf but also had no children. How does that happen?")
 }
 
 // isLeaf returns true if this is a leaf node
@@ -267,30 +238,27 @@ func (m *tree) isLeaf() bool {
 // returns the number of child subtrees we have
 func (m *tree) subtreeCount() int {
     count := 0
-    if m.hasLeft() {
-        count++
-    }
-    if m.hasRight() {
-        count++
+    for _, t := range m.children {
+        if t != nilMap {
+            count++
+        }
     }
     return count
 }
 
 func (m *tree) Lookup(key string) (Any, bool) {
     hash := hashKey(key)
-    return lookupLowLevel(m, hash)
+    return lookupLowLevel(m, hash, hash)
 }
 
-func lookupLowLevel(self *tree, hash uint64) (Any, bool) {
+func lookupLowLevel(self *tree, partialHash, hash uint64) (Any, bool) {
     if self.IsNil() { // an empty tree is easy
         return nil, false
     }
 
-    if hash < self.hash { // look in the left subtree
-        return lookupLowLevel(self.left, hash)
-    }
-    if hash > self.hash { // look in the right subtree
-        return lookupLowLevel(self.right, hash)
+    if hash != self.hash {
+        i := partialHash % childCount
+        return lookupLowLevel(self.children[i], partialHash>>shiftSize, hash)
     }
 
     // we found it
@@ -306,17 +274,14 @@ func (m *tree) ForEach(f func(key string, val Any)) {
         return
     }
 
-    // left branch
-    if !m.left.IsNil() {
-        m.left.ForEach(f)
-    }
-
     // ourself
     f(m.key, m.value)
 
-    // right branch
-    if !m.right.IsNil() {
-        m.right.ForEach(f)
+    // children
+    for _, t := range m.children {
+        if t != nilMap {
+            t.ForEach(f)
+        }
     }
 }
 
