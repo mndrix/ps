@@ -51,8 +51,8 @@ type Map interface {
 }
 
 // Immutable (i.e. persistent) associative array
-const childCount = 2
-const shiftSize  = 1
+const childCount = 8
+const shiftSize  = 3
 type tree struct {
     count   int
     hash    uint64  // hash of the key (used for tree balancing)
