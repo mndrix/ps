@@ -97,10 +97,9 @@ const (
 )
 // hashKey returns a hash code for a given string
 func hashKey(key string) uint64 {
-    bytes := []byte(key)
     hash := offset64
-    for _, byte := range bytes {
-        hash ^= uint64(byte)
+    for _, codepoint := range key {
+        hash ^= uint64(codepoint)
         hash *= prime64
     }
     return hash
