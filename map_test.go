@@ -113,12 +113,12 @@ func TestMapManyKeys (t *testing.T) {
     }
 
     if m.Size() != 100 {
-        t.Errorf("Wrong number of keys", m.Size())
+        t.Errorf("Wrong number of keys: %d", m.Size())
     }
 
     m = m.Delete("42").Delete("7").Delete("19").Delete("99")
     if m.Size() != 96 {
-        t.Errorf("Wrong number of keys", m.Size())
+        t.Errorf("Wrong number of keys: %d", m.Size())
     }
 
     for i:=43; i<99; i++ {
