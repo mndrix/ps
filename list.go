@@ -6,11 +6,11 @@ type List interface {
 	IsNil() bool
 
 	// Cons returns a new list with val as the head
-	Cons(val Any) List
+	Cons(val interface{}) List
 
 	// Head returns the first element of the list;
 	// panics if the list is empty
-	Head() Any
+	Head() interface{}
 
 	// Tail returns a list with all elements except the head;
 	// panics if the list is empty
@@ -20,7 +20,7 @@ type List interface {
 	Size() int
 
 	// ForEach executes a callback for each value in the list.
-	ForEach(f func(Any))
+	ForEach(f func(interface{}))
 
 	// Reverse returns a list whose elements are in the opposite order as
 	// the original list.
@@ -30,7 +30,7 @@ type List interface {
 // Immutable (i.e. persistent) list
 type list struct {
 	depth int // the number of nodes after, and including, this one
-	value Any
+	value interface{}
 	tail  *list
 }
 
@@ -52,7 +52,7 @@ func (self *list) Size() int {
 	return self.depth
 }
 
-func (tail *list) Cons(val Any) List {
+func (tail *list) Cons(val interface{}) List {
 	var xs list
 	xs.depth = tail.depth + 1
 	xs.value = val
@@ -60,7 +60,7 @@ func (tail *list) Cons(val Any) List {
 	return &xs
 }
 
-func (self *list) Head() Any {
+func (self *list) Head() interface{} {
 	if self.IsNil() {
 		panic("Called Head() on an empty list")
 	}
@@ -77,7 +77,7 @@ func (self *list) Tail() List {
 }
 
 // ForEach executes a callback for each value in the list
-func (self *list) ForEach(f func(Any)) {
+func (self *list) ForEach(f func(interface{})) {
 	if self.IsNil() {
 		return
 	}
@@ -88,6 +88,6 @@ func (self *list) ForEach(f func(Any)) {
 // Reverse returns a list with elements in opposite order as this list
 func (self *list) Reverse() List {
 	reversed := NewList()
-	self.ForEach(func(v Any) { reversed = reversed.Cons(v) })
+	self.ForEach(func(v interface{}) { reversed = reversed.Cons(v) })
 	return reversed
 }

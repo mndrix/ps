@@ -14,9 +14,6 @@ import (
 	"fmt"
 )
 
-// Any is a shorthand for Go's verbose interface{} type.
-type Any interface{}
-
 // A Map associates unique keys (type string) with values (type Any).
 type Map interface {
 	// IsNil returns true if the Map is empty
@@ -26,7 +23,7 @@ type Map interface {
 	// If the key didn't exist before, it's created; otherwise, the
 	// associated value is changed.
 	// This operation is O(log N) in the number of keys.
-	Set(key string, value Any) Map
+	Set(key string, value interface{}) Map
 
 	// Delete returns a new map with the association for key, if any, removed.
 	// This operation is O(log N) in the number of keys.
@@ -35,14 +32,14 @@ type Map interface {
 	// Lookup returns the value associated with a key, if any.  If the key
 	// exists, the second return value is true; otherwise, false.
 	// This operation is O(log N) in the number of keys.
-	Lookup(key string) (Any, bool)
+	Lookup(key string) (interface{}, bool)
 
 	// Size returns the number of key value pairs in the map.
 	// This takes O(1) time.
 	Size() int
 
 	// ForEach executes a callback on each key value pair in the map.
-	ForEach(f func(key string, val Any))
+	ForEach(f func(key string, val interface{}))
 
 	// Keys returns a slice with all keys in this map.
 	// This operation is O(N) in the number of keys.
@@ -59,7 +56,7 @@ type tree struct {
 	count    int
 	hash     uint64 // hash of the key (used for tree balancing)
 	key      string
-	value    Any
+	value    interface{}
 	children [childCount]*tree
 }
 
@@ -112,12 +109,12 @@ func hashKey(key string) uint64 {
 // Set returns a new map similar to this one but with key and value
 // associated.  If the key didn't exist, it's created; otherwise, the
 // associated value is changed.
-func (self *tree) Set(key string, value Any) Map {
+func (self *tree) Set(key string, value interface{}) Map {
 	hash := hashKey(key)
 	return setLowLevel(self, hash, hash, key, value)
 }
 
-func setLowLevel(self *tree, partialHash, hash uint64, key string, value Any) *tree {
+func setLowLevel(self *tree, partialHash, hash uint64, key string, value interface{}) *tree {
 	if self.IsNil() { // an empty tree is easy
 		m := self.clone()
 		m.count = 1
@@ -249,12 +246,12 @@ func (m *tree) subtreeCount() int {
 	return count
 }
 
-func (m *tree) Lookup(key string) (Any, bool) {
+func (m *tree) Lookup(key string) (interface{}, bool) {
 	hash := hashKey(key)
 	return lookupLowLevel(m, hash, hash)
 }
 
-func lookupLowLevel(self *tree, partialHash, hash uint64) (Any, bool) {
+func lookupLowLevel(self *tree, partialHash, hash uint64) (interface{}, bool) {
 	if self.IsNil() { // an empty tree is easy
 		return nil, false
 	}
@@ -272,7 +269,7 @@ func (m *tree) Size() int {
 	return m.count
 }
 
-func (m *tree) ForEach(f func(key string, val Any)) {
+func (m *tree) ForEach(f func(key string, val interface{})) {
 	if m.IsNil() {
 		return
 	}
@@ -291,7 +288,7 @@ func (m *tree) ForEach(f func(key string, val Any)) {
 func (m *tree) Keys() []string {
 	keys := make([]string, m.Size())
 	i := 0
-	m.ForEach(func(k string, v Any) {
+	m.ForEach(func(k string, v interface{}) {
 		keys[i] = k
 		i++
 	})
