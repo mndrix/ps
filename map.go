@@ -132,6 +132,12 @@ func setLowLevel(self *tree, partialHash, hash uint64, key string, value interfa
 		return m
 	}
 
+	// did we find a hash collision?
+	if key != self.key {
+		oops := fmt.Sprintf("Hash collision between: '%s' and '%s'.  Please report to https://github.com/mndrix/ps/issues/new", self.key, key)
+		panic(oops)
+	}
+
 	// replacing a key's previous value
 	m := self.clone()
 	m.value = value
