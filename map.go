@@ -9,9 +9,10 @@
 // operations to avoid copying the entire data structure.
 package ps
 
-import . "fmt"
-
-import "bytes"
+import (
+	"bytes"
+	"fmt"
+)
 
 // Any is a shorthand for Go's verbose interface{} type.
 type Any interface{}
@@ -303,8 +304,8 @@ func (m *tree) String() string {
 	buf := bytes.NewBufferString("{")
 	for _, key := range keys {
 		val, _ := m.Lookup(key)
-		Fprintf(buf, "%s: %s, ", key, val)
+		fmt.Fprintf(buf, "%s: %s, ", key, val)
 	}
-	Fprintf(buf, "}\n")
+	fmt.Fprintf(buf, "}\n")
 	return buf.String()
 }
