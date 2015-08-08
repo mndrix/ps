@@ -14,6 +14,11 @@ import (
 	"fmt"
 )
 
+// Any is a shorthand for Go's verbose interface{} type.
+// Usage of this type is deprecated.  It will be removed sometime
+// after May 2016.
+type Any interface{}
+
 // A Map associates unique keys (type string) with values (type Any).
 type Map interface {
 	// IsNil returns true if the Map is empty
