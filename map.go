@@ -26,11 +26,11 @@ type Map interface {
 	// This operation is O(log N) in the number of keys.
 	Set(key string, value interface{}) Map
 
-	// Set returns the same map in which key and value are associated in-place.
+	// UnsafeMutableSet returns the same map in which key and value are associated in-place.
 	// If the key didn't exist before, it's created; otherwise, the
 	// associated value is changed.
 	// This operation is O(log N) in the number of keys.
-	// Only use if you are the only reference-holder of the Map.
+	// Only use UnsafeMutableSet if you are the only reference-holder of the Map.
 	UnsafeMutableSet(key string, value interface{}) Map
 
 	// Delete returns a new map with the association for key, if any, removed.
@@ -118,7 +118,8 @@ type unsafeSlice struct {
 var zeroByteSlice = []byte{}
 
 // bytesView returns a view of the string as a []byte.
-// In unsafe mode, it doesn't incur allocation and copying caused by conversion.
+// It doesn't incur allocation and copying caused by conversion but it's
+// unsafe, use with care.
 func bytesView(v string) []byte {
 	if len(v) == 0 {
 		return zeroByteSlice
