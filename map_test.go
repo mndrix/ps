@@ -128,6 +128,31 @@ func TestMapManyKeys(t *testing.T) {
 	}
 }
 
+func TestMapUnsafeMutableSet(t *testing.T) {
+	// build a map with many keys and values
+	count := 100
+	m := NewMap()
+	for i := 0; i < count; i++ {
+		m = m.UnsafeMutableSet(Itoa(i), i)
+	}
+
+	if m.Size() != 100 {
+		t.Errorf("Wrong number of keys: %d", m.Size())
+	}
+
+	m = m.Delete("42").Delete("7").Delete("19").Delete("99")
+	if m.Size() != 96 {
+		t.Errorf("Wrong number of keys: %d", m.Size())
+	}
+
+	for i := 43; i < 99; i++ {
+		v, ok := m.Lookup(Itoa(i))
+		if !ok || v != i {
+			t.Errorf("Wrong value for key %d", i)
+		}
+	}
+}
+
 func TestMapHashKey(t *testing.T) {
 	hash := hashKey("this is a key")
 	if hash != 10424450902216330915 {
@@ -139,6 +164,13 @@ func BenchmarkMapSet(b *testing.B) {
 	m := NewMap()
 	for i := 0; i < b.N; i++ {
 		m = m.Set("foo", i)
+	}
+}
+
+func BenchmarkMapUnsafeMutableSet(b *testing.B) {
+	m := NewMap()
+	for i := 0; i < b.N; i++ {
+		m = m.UnsafeMutableSet("foo", i)
 	}
 }
 
