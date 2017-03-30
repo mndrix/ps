@@ -11,12 +11,23 @@ func TestMapNil(t *testing.T) {
 	if len(keys) != 0 {
 		t.Errorf("Empty map has keys")
 	}
+
+	if m.First() != nil {
+		t.Errorf("empty map should have no first value")
+	}
 }
 
 func TestMapImmutable(t *testing.T) {
 	// build a couple small maps
 	world := NewMap().Set("hello", "world")
 	kids := world.Set("hello", "kids")
+
+	if world.First() != "world" {
+		t.Errorf("first value in a singleton map should be obvious")
+	}
+	if kids.First() == nil {
+		t.Errorf("first value of a non-empty map should exist")
+	}
 
 	// both maps should still retain their data
 	if v, _ := world.Lookup("hello"); v != "world" {
@@ -47,6 +58,9 @@ func TestMapImmutable(t *testing.T) {
 	}
 	if keys := empty.Keys(); len(keys) != 0 {
 		t.Errorf("empty has the wrong keys: %#v", keys)
+	}
+	if empty.First() != nil {
+		t.Errorf("newly emptied map should have no first value")
 	}
 }
 
