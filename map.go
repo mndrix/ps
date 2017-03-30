@@ -15,7 +15,7 @@ import (
 	"unsafe"
 )
 
-// A Map associates unique keys (type string) with values (type Any).
+// A Map associates unique keys with values.
 type Map interface {
 	// IsNil returns true if the Map is empty
 	IsNil() bool
