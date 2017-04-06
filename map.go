@@ -191,7 +191,7 @@ func (self *tree) UnsafeMutableSet(key string, value interface{}) Map {
 
 func mutableSetLowLevel(self *tree, partialHash, hash uint64, key string, value interface{}) *tree {
 	if self.IsNil() { // an empty tree is easy
-		m := self.clone()
+		m := self
 		m.count = 1
 		m.hash = hash
 		m.key = key
